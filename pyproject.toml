@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lynx"
+authors = [
+    {name = "Xi Chen", email = "xinehc@gmail.com"},
+]
+readme = "README.md"
+description = "Lynx: lightweight profiling of antibiotic resistance genes from short-read metagenomes"
+license = {file = "LICENSE"}
+dynamic = ["version"]
+requires-python = ">=3.7"
+dependencies = [
+    "tqdm",
+    "rich-argparse",
+]
+
+[project.scripts]
+lynx = "lynx.cli:cli"
+
+[tool.setuptools.dynamic]
+version = {attr = "lynx.__version__"}
