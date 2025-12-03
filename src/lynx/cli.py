@@ -57,7 +57,7 @@ def cli():
     required.add_argument(
         '-d',
         '--db',
-        metavar='File',
+        metavar='FILE',
         required=True,
         help='Database file.')
 
@@ -90,19 +90,11 @@ def cli():
 
     optional.add_argument(
         '-c',
-        '--cover',
+        '--cov',
         metavar='FLOAT',
         type=float,
-        default=75,
+        default=70,
         help='Min. query cover in percentage.')
-
-    optional.add_argument(
-        '-l',
-        '--length',
-        metavar='INT',
-        type=int,
-        default=25,
-        help='Min. alignment length in aa.')
 
     optional.add_argument(
         '-t',
@@ -123,7 +115,7 @@ def cli():
     args.func(**{key: val for key, val in vars(args).items() if key != 'func'})
 
 
-def parse(file, id, cover, length):
+def parse(file, id, cov):
     a = {'l15e', 's19e', 'l4e', 's24e', 'l10e', 'l44e', 's3ae', 'l11'}
     b = {'s7', 'l2', 'l11', 'l13', 's2', 's16', 'l27', 'l20'}
     adict = {x: 0 for x in a}
@@ -132,7 +124,7 @@ def parse(file, id, cover, length):
     ydict = defaultdict(float)
     zdict = defaultdict(float)
 
-    cover /= 100
+    cov /= 100
     with gzip.open(file, 'rt') as f:
         cur_q, block = None, []
         for line in chain(f, [None]):
@@ -143,23 +135,23 @@ def parse(file, id, cover, length):
 
             if qseqid != cur_q:
                 if block:
-                    max_alen = 0
+                    max_length = 0
                     scov_at_max = []
                     for r in block:
-                        sseqid = r[1]; pident = float(r[2]); alen = int(r[3]); qlen = int(r[4]); scov = float(r[5])
-                        if 'SARG' in sseqid:
-                            if pident <= id or alen <= max(length, min(50 * cover, (qlen / 3) * cover)):
+                        sseqid = r[1]; pident = float(r[2]); length = int(r[3]); qlen = int(r[4]); scov = float(r[5])
+                        if sseqid[:4] == 'SARG':
+                            if pident < id or length < max(25, min(50, (qlen / 3)) * cov):
                                 continue
                         else:
-                            if pident <= 75 or alen <= max(25, min(37.5, (qlen / 3) * 0.75)):
+                            if pident < 70 or length < max(25, min(50, (qlen / 3)) * 0.7):
                                 continue
 
-                        if alen > max_alen:
+                        if length > max_length:
                             sseqid_at_max = sseqid
                             scov_at_max = [scov]
-                            max_alen = alen
+                            max_length = length
 
-                        elif alen == max_alen:
+                        elif length == max_length:
                             scov_at_max.append(scov)
 
                     if scov_at_max:
@@ -219,7 +211,7 @@ def check(files, db, out, single, force):
     return items
 
 
-def run(files, db, out, single, force, id, cover, length, threads):
+def run(files, db, out, single, force, id, cov, threads):
     with logging_redirect_tqdm():
         items = check(files, db, out, single, force)
         for sample, file in tqdm(items.items(), desc='Processing', leave=False):
@@ -235,7 +227,7 @@ def run(files, db, out, single, force, id, cover, length, threads):
                             '--threads', str(threads),
                             '--outfmt', '6', 'qseqid', 'sseqid', 'pident', 'length', 'qlen', 'scovhsp', 'evalue', 'bitscore',
                             '--top', '0',
-                            '--id', str(min(75, id)),
+                            '--id', str(min(70, id)),
                         ], stdout=subprocess.PIPE)
 
                         p2 = subprocess.Popen(['pigz', '-c', '--best', '-p', str(threads)], stdin=p1.stdout, stdout=f)
@@ -243,7 +235,7 @@ def run(files, db, out, single, force, id, cover, length, threads):
                         p2.wait()
                         p1.wait()
 
-    worker = partial(parse, id=id, cover=cover, length=length)
+    worker = partial(parse, id=id, cov=cov)
     with open(f'{out}/sequence.tsv', 'w') as f1, open(f'{out}/subtype.tsv', 'w') as f2, open(f'{out}/type.tsv', 'w') as f3:
         f1.write('sample\tsequence\tcopy\tgenome\tabundance\n')
         f2.write('sample\tsubtype\tcopy\tgenome\tabundance\n')
