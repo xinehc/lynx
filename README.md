@@ -4,9 +4,7 @@ Lynx: lightweight profiling of antibiotic resistance genes from short-read metag
 ## Quick start
 ### Installation
 ```bash
-conda install -c bioconda -c conda-forge diamond pigz
-git clone https://github.com/xinehc/lynx.git
-pip install -e lynx
+conda install -c bioconda -c conda-forge xinehc::lynx
 ```
 
 ### Download database
