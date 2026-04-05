@@ -1,0 +1,39 @@
+package:
+  name: lynx
+  version: {{ GIT_DESCRIBE_TAG[1:] }}
+
+source:
+  path: ..
+
+build:
+  noarch: python
+  number: 0
+  script: {{ PYTHON }} -m pip install . --no-deps --ignore-installed -vv
+
+requirements:
+  host:
+    - python >=3.12
+    - pip
+    - setuptools >=64
+  run:
+    - python >=3.12
+    - tqdm
+    - rich-argparse
+    - diamond >=2.1.24
+    - pigz
+
+test:
+  imports:
+    - lynx
+  commands:
+    - lynx -h
+
+about:
+  home: https://github.com/xinehc/lynx
+  summary: "Lynx: lightweight profiling of antibiotic resistance genes from short-read metagenomes"
+  license: MIT
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - xinehc

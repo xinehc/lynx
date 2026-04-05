@@ -214,7 +214,7 @@ def run(files, db, out, single, force, id, cov, threads):
         items = check(files, db, out, single, force)
         for sample, file in tqdm(items.items(), leave=False):
             if os.path.isfile(f'{out}/{sample}.out.gz') and not force:
-                log.info(f'File <{out}/{sample}.out.gz> exists, skip. Use <--force> for overwriting.')
+                log.warning(f'File <{out}/{sample}.out.gz> exists, skip. Use <--force> for overwriting.')
             else:
                 with open(f'{out}/{sample}.out.gz', 'wb') as f:
                     for query in file:

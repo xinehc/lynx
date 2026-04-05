@@ -1,0 +1,51 @@
+name: release-conda
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  build-upload:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: conda-incubator/setup-miniconda@v3
+        with:
+          auto-update-conda: true
+          activate-environment: build
+          python-version: "3.12"
+          channels: conda-forge,bioconda,defaults
+
+      - name: Install tools
+        shell: bash -el {0}
+        run: |
+          conda install -y conda-build anaconda-client
+
+      - name: Build package
+        shell: bash -el {0}
+        run: |
+          conda build recipe \
+            --no-anaconda-upload \
+            --output-folder build-artifacts
+
+      - name: Upload to Anaconda.org
+        shell: bash -el {0}
+        env:
+          ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
+          ANACONDA_USER: ${{ secrets.ANACONDA_USER }}
+        run: |
+          shopt -s nullglob globstar
+          files=(build-artifacts/**/*.conda build-artifacts/**/*.tar.bz2)
+          test ${#files[@]} -gt 0
+
+          anaconda --token "$ANACONDA_TOKEN" upload \
+            --user "$ANACONDA_USER" \
+            --skip-existing \
+            "${files[@]}"
