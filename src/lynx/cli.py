@@ -6,7 +6,7 @@ import re
 import subprocess
 import logging
 
-from collections import defaultdict
+from collections import defaultdict, Counter
 from itertools import chain
 from statistics import median
 from functools import partial, partialmethod
@@ -115,10 +115,8 @@ def cli():
     args.func(**{key: val for key, val in vars(args).items() if key != 'func'})
 
 
-def parse(file, id, cov):
+def parse(file, id, cov, a, b):
     try:
-        a = {'l15e', 's19e', 'l4e', 's24e', 'l10e', 'l44e', 's3ae', 'l11'}
-        b = {'s7', 'l2', 'l11', 'l13', 's2', 's16', 'l27', 'l20'}
         acopy = {x: 0 for x in a}
         bcopy = {x: 0 for x in b}
         scopy = defaultdict(float)
@@ -236,7 +234,22 @@ def run(files, db, out, single, force, id, cov, threads):
                         p1.wait()
 
     log.info('Parsing outputs ...')
-    worker = partial(parse, id=id, cov=cov)
+    acnt = Counter()
+    bcnt = Counter()
+
+    with open(db) as f:
+        for line in f:
+            if '>' in line and 'SARG' not in line:
+                ls = line[1:-1].split('-')
+                if ls[-2] == 'archaea':
+                    acnt[ls[0]] += 1
+                elif ls[-2] == 'bacteria':
+                    bcnt[ls[0]] += 1
+
+    a = {x[0] for x in acnt.most_common(8)}
+    b = {x[0] for x in bcnt.most_common(8)}
+
+    worker = partial(parse, id=id, cov=cov, a=a, b=b)
     with open(f'{out}/output.abundance.tsv', 'w') as f1, open(f'{out}/output.genome.tsv', 'w') as f2:
         f1.write('sample\ttype\tsubtype\tcopy\tabundance\n')
         f2.write('sample\tgenome\n')
