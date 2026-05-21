@@ -12,9 +12,6 @@ conda install -c bioconda -c conda-forge diamond pigz xinehc::lynx
 ```
 
 ### Database setup
-> [!NOTE]
-> In early versions of the ARG database, ARGs were uniquely identifiable only by type + subtype, not by subtype alone, because subtypes could be duplicated, e.g., *streptothricin satA* and *multidrug satA*. This has been fixed in databases released on or after 2026-05-20 by renaming certain subtypes to avoid naming collisions.
-
 Download the latest database from [Zenodo](https://doi.org/10.5281/zenodo.17536666):
 ```bash
 wget -qN --show-progress https://zenodo.org/records/20314770/files/db.fa
