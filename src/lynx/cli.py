@@ -138,7 +138,8 @@ def parse(file, id, cov, a, b):
                         if scov_at_max:
                             s = median(scov_at_max) / 100
                             if sseqid_at_max.startswith('SARG'):
-                                scopy[sseqid_at_max[5:].rsplit('|', 1)[0]] += s
+                                type, subtype = sseqid_at_max.split('|')[1:3]
+                                scopy[(type.split('@')[0], subtype)] += s
                             else:
                                 m = sseqid_at_max.split('-')[0]
                                 if 'bacteria' in sseqid_at_max and m in b:
@@ -261,8 +262,7 @@ def run(files, db, out, single, force, id, cov, threads):
                 sample, genome, scopy = chunk
                 f2.write(f'{sample}\t{genome}\n')
                 for k, v in sorted(scopy.items()):
-                    type, subtype = k.split('|')
-                    f1.write(f"{sample}\t{type}\t{subtype}\t{v}\t{(v / genome) if genome else 'n/a'}\n")
+                    f1.write(f"{sample}\t{k[0]}\t{k[1]}\t{v}\t{(v / genome) if genome else 'n/a'}\n")
 
     log.info('Finished.')
 
