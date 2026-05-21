@@ -19,7 +19,7 @@ requirements:
     - python >=3.12
     - tqdm
     - rich-argparse
-    - diamond >=2.1.24
+    - diamond >=2.2.0
     - pigz
 
 test:
