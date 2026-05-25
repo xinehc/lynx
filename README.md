@@ -14,7 +14,7 @@ conda install -c bioconda -c conda-forge diamond pigz xinehc::lynx
 ### Database setup
 Download the latest database from [Zenodo](https://doi.org/10.5281/zenodo.17536666):
 ```bash
-wget -qN --show-progress https://zenodo.org/records/20314770/files/db.fa
+wget -qN --show-progress https://zenodo.org/records/20373777/files/db.fa
 ```
 
 ### Run Lynx
