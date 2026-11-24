@@ -210,7 +210,7 @@ def check(files, db, out, single, force):
 
 
 def run(files, db, out, single, force, id, cov, threads):
-    log.info(f'Obtaining gene/genome copies ...')
+    log.info(f'Obtaining copies ...')
     with logging_redirect_tqdm():
         items = check(files, db, out, single, force)
         for sample, file in tqdm(items.items(), leave=False):
@@ -227,6 +227,7 @@ def run(files, db, out, single, force, id, cov, threads):
                             '--outfmt', '6', 'qseqid', 'sseqid', 'pident', 'length', 'qlen', 'scovhsp', 'evalue', 'bitscore',
                             '--top', '0',
                             '--id', str(min(70, id)),
+                            '--quiet',
                         ], stdout=subprocess.PIPE)
 
                         p2 = subprocess.Popen(['pigz', '-c', '--best', '-p', str(threads)], stdin=p1.stdout, stdout=f)
