@@ -35,16 +35,16 @@ lynx -d db.fa -o . example/*.fasta
 The `output.genome.tsv` file contains estimated genome copies obtained by mapping reads to eight bacterial/archaeal marker genes:
 
 ```text
-sample	genome
-sample	61.96256249999998
+sample  genome
+sample  61.96256249999998
 ```
 
 The `output.abundance.tsv` file contains estimated ARG copies and the associated abundances in copies per genome (i.e., ARG copies divided by genome copies):
 ```text
-sample	type		subtype	 copy				 abundance
+sample  type         subtype  copy				  abundance
 ...
-sample	sulfonamide	sul1	 4.16				 0.06713731376103113
-sample	sulfonamide	sul2	 169.33200000000116	 2.7328114456209134
-sample	sulfonamide	sul3	 26.763499999999997	 0.4319301675104222
+sample  sulfonamide  sul1     2.1580000000000004  0.0348274815135349
+sample  sulfonamide  sul2     169.33200000000116  2.7328114456209134
+sample  sulfonamide  sul3     26.763499999999997  0.4319301675104222
 ...
 ```
