@@ -41,7 +41,7 @@ sample  61.96256249999998
 
 The `output.abundance.tsv` file contains estimated ARG copies and the associated abundances in copies per genome (i.e., ARG copies divided by genome copies):
 ```text
-sample  type         subtype  copy				  abundance
+sample  type         subtype  copy                abundance
 ...
 sample  sulfonamide  sul1     2.1580000000000004  0.0348274815135349
 sample  sulfonamide  sul2     169.33200000000116  2.7328114456209134
