@@ -18,7 +18,7 @@ wget -qN --show-progress https://zenodo.org/records/20373777/files/db.fa
 ```
 
 ### Run Lynx
-Download an example file containing 1,000,000 paired-end short reads:
+Download an [example dataset](https://zenodo.org/records/15681353) containing 1,000,000 paired-end short reads:
 ```bash
 wget -qN --show-progress https://zenodo.org/records/15681353/files/example.tar.gz
 tar -xvf example.tar.gz
