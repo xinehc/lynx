@@ -1,4 +1,9 @@
 # Changelog
+## [0.1.3] - 2026-11-27
+### Added
+- Add --level.
+
+
 ## [0.1.2] - 2026-11-24
 ### Changed
 - Add --quiet.
