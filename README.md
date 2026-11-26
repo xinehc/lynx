@@ -25,14 +25,13 @@ tar -xvf example.tar.gz
 ```
 
 > [!TIP]
-> If you have single-end reads, use `--single`; otherwise files with suffixes `<_(1|2)>`, `<_(R1|R2)>`, or `<_(fwd|rev)>` will be merged.
+> If you have single-end reads, use `--single`; otherwise files with suffixes `<_(1|2)>`, `<_(R1|R2)>`, or `<_(fwd|rev)>` will be merged. Use `--level type` for totals by ARG type, `--level subtype` (default) for totals by ARG subtype, or `--level sequence` for a row per reference sequence. You can change levels using the same output folder to reuse the caches `<*.out.gz>`.
+
 
 Run Lynx:
 ```bash
 lynx -d db.fa -o . example/*.fasta
 ```
-
-Use `--level type` for totals by ARG type, `--level subtype` (default) for totals by ARG subtype, or `--level sequence` for a row per reference. You can change levels using the same output folder to reuse the caches.
 
 The `output.genome.tsv` file contains estimated genome copies obtained by mapping reads to eight bacterial/archaeal marker genes:
 
