@@ -51,7 +51,7 @@ def cli():
         dest='files',
         nargs='+',
         metavar='file',
-        help='Input fasta <*.fa|*.fasta> or fastq <*.fq|*.fastq> file, gzip optional <*.gz>.')
+        help='Input fasta <*.fa|*.fasta> or fastq <*.fq|*.fastq> file, gzipped optional <*.gz>.')
 
     required = parser.add_argument_group('required arguments')
     required.add_argument(
@@ -77,8 +77,15 @@ def cli():
     optional.add_argument(
         '--single',
         action='store_true',
-        help='Files are single-end. If not given then merge forward|reward files with <_(1|2)>, <_(R1|R2)> or <_(fwd|rev)>.'
-    )
+        help='Files are single-end. If not given then merge forward|reverse files with <_(1|2)>, <_(R1|R2)> or <_(fwd|rev)>.')
+
+    optional.add_argument(
+        '-l',
+        '--level',
+        metavar='STR',
+        type=str,
+        default='subtype',
+        help='Aggregate ARG copies and abundance by <type|subtype|sequence>.')
 
     optional.add_argument(
         '-i',
@@ -115,7 +122,7 @@ def cli():
     args.func(**{key: val for key, val in vars(args).items() if key != 'func'})
 
 
-def parse(file, id, cov, a, b):
+def parse(file, id, cov, a, b, level=2):
     try:
         acopy = {x: 0 for x in a}
         bcopy = {x: 0 for x in b}
@@ -138,8 +145,9 @@ def parse(file, id, cov, a, b):
                         if scov_at_max:
                             s = median(scov_at_max) / 100
                             if sseqid_at_max.startswith('SARG'):
-                                type, subtype = sseqid_at_max.split('|')[1:3]
-                                scopy[(type.split('@')[0], subtype)] += s
+                                group = sseqid_at_max.split('|', 3)[1: level + 1]
+                                group[0] = group[0].split('@', 1)[0]
+                                scopy[tuple(group)] += s
                             else:
                                 m = sseqid_at_max.split('-')[0]
                                 if 'bacteria' in sseqid_at_max and m in b:
@@ -167,7 +175,6 @@ def parse(file, id, cov, a, b):
                     elif length == best[1]:
                         best[2].append(scov)
 
-        ## means over eight markers, default zero
         genome = (sum(bcopy.values()) / 8) + (sum(acopy.values()) / 8)
         return os.path.basename(file).split('.out.gz')[0], genome, scopy
 
@@ -175,7 +182,12 @@ def parse(file, id, cov, a, b):
         return file, None
 
 
-def check(files, db, out, single, force):
+def check(files, db, out, single, force, level):
+    levels = ('type', 'subtype', 'sequence')
+    if level not in levels:
+        log.critical(f"Invalid --level <{level}>. Choose from <{'|'.join(levels)}>.")
+        sys.exit(2)
+
     os.makedirs(out, exist_ok=True)
     for file in files + [db]:
         if not os.path.isfile(file):
@@ -206,20 +218,25 @@ def check(files, db, out, single, force):
     if len({len(file) for file in items.values()}) != 1:
         log.warning('Files are mixed with single-/paired-end. Check whether <--single> is needed.')
 
-    return items
+    return items, levels[:levels.index(level) + 1]
 
 
-def run(files, db, out, single, force, id, cov, threads):
-    log.info(f'Obtaining copies ...')
+def run(files, db, out, single, force, id, cov, threads, level='subtype'):
+    threads = max(1, threads or 1)
+    log.info('Aligning reads ...')
     with logging_redirect_tqdm():
-        items = check(files, db, out, single, force)
+        items, levels = check(files, db, out, single, force, level)
         for sample, file in tqdm(items.items(), leave=False):
-            if os.path.isfile(f'{out}/{sample}.out.gz') and not force:
-                log.warning(f'File <{out}/{sample}.out.gz> exists, skip. Use <--force> for overwriting.')
+            cache = f'{out}/{sample}.out.gz'
+            if os.path.isfile(cache) and not force:
+                log.warning(f'File <{cache}> exists, skipped. Use <--force> for overwriting.')
             else:
-                with open(f'{out}/{sample}.out.gz', 'wb') as f:
+                tmp = f'{cache}.tmp'
+                if os.path.exists(tmp):
+                    os.remove(tmp)
+                with open(tmp, 'xb') as f:
                     for query in file:
-                        p1 = subprocess.Popen([
+                        with subprocess.Popen([
                             'diamond', 'blastx',
                             '--query', query,
                             '--db', db,
@@ -228,12 +245,15 @@ def run(files, db, out, single, force, id, cov, threads):
                             '--top', '0',
                             '--id', str(min(70, id)),
                             '--quiet',
-                        ], stdout=subprocess.PIPE)
+                        ], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL) as p1:
+                            p2 = subprocess.run(['pigz', '-c', '--best', '-p', str(threads)], stdin=p1.stdout, stdout=f)
 
-                        p2 = subprocess.Popen(['pigz', '-c', '--best', '-p', str(threads)], stdin=p1.stdout, stdout=f)
-                        p1.stdout.close()
-                        p2.wait()
-                        p1.wait()
+                        if p1.returncode or p2.returncode:
+                            os.remove(f.name)
+                            log.critical(f'Failed to process <{query}>.')
+                            sys.exit(2)
+
+                os.replace(tmp, cache)
 
     log.info('Parsing outputs ...')
     acnt = Counter()
@@ -251,19 +271,20 @@ def run(files, db, out, single, force, id, cov, threads):
     a = {x[0] for x in acnt.most_common(8)}
     b = {x[0] for x in bcnt.most_common(8)}
 
-    worker = partial(parse, id=id, cov=cov, a=a, b=b)
+    worker = partial(parse, id=id, cov=cov, a=a, b=b, level=len(levels))
     with open(f'{out}/output.abundance.tsv', 'w') as f1, open(f'{out}/output.genome.tsv', 'w') as f2:
-        f1.write('sample\ttype\tsubtype\tcopy\tabundance\n')
+        f1.write('\t'.join(('sample', *levels, 'copy', 'abundance')) + '\n')
         f2.write('sample\tgenome\n')
 
         for chunk in process_map(worker, [f'{out}/{file}.out.gz' for file in items.keys()], max_workers=threads, chunksize=1, leave=False):
             if chunk[-1] is None:
-                log.warning(f"File <{chunk[0]}> failed to parse, skip. Consider <--force> for overwriting.")
+                log.warning(f"File <{chunk[0]}> failed to parse, skipped. Consider <--force> for overwriting.")
             else:
                 sample, genome, scopy = chunk
                 f2.write(f'{sample}\t{genome}\n')
-                for k, v in sorted(scopy.items()):
-                    f1.write(f"{sample}\t{k[0]}\t{k[1]}\t{v}\t{(v / genome) if genome else 'n/a'}\n")
+                for group, copies in sorted(scopy.items()):
+                    abundance = copies / genome if genome else 'n/a'
+                    f1.write('\t'.join((sample, *group, str(copies), str(abundance))) + '\n')
 
     log.info('Finished.')
 

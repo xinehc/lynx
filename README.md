@@ -32,6 +32,8 @@ Run Lynx:
 lynx -d db.fa -o . example/*.fasta
 ```
 
+Use `--level type` for totals by ARG type, `--level subtype` (default) for totals by ARG subtype, or `--level sequence` for a row per reference. You can change levels using the same output folder to reuse the caches.
+
 The `output.genome.tsv` file contains estimated genome copies obtained by mapping reads to eight bacterial/archaeal marker genes:
 
 ```text
